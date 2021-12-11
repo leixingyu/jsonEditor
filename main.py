@@ -3,6 +3,7 @@ Main window to launch JsonViewer
 """
 
 
+import json
 import sys
 
 from Qt import QtWidgets, QtCore, QtGui
@@ -72,9 +73,12 @@ class MainWindow(QtWidgets.QMainWindow):
         temp_btn.clicked.connect(self.pprint)
 
     def pprint(self):
-        doc = self.ui_tree_view.asDict(self.ui_tree_view.getSelectedIndices())
-        print doc
+        output = self.ui_tree_view.asDict(self.ui_tree_view.getSelectedIndices())
+        jsonDict = json.dumps(output, indent=4)
 
+        from textEditDialog import TextEditDialog
+        dialog = TextEditDialog(str(jsonDict))
+        dialog.exec_()
 
 def show():
     global window
