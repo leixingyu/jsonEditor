@@ -15,10 +15,9 @@ class QJsonView(QtWidgets.QTreeView):
 
         self._clipBroad = ''
 
-        self.setSortingEnabled(1)
-        self.setDragEnabled(1)
-        self.setAcceptDrops(1)
-
+        self.setSortingEnabled(True)
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -29,27 +28,22 @@ class QJsonView(QtWidgets.QTreeView):
         self.model().sort(0, QtCore.Qt.AscendingOrder)
 
     def openContextMenu(self):
-        """
-        [summary]
-
-        @param point: QtCore.QPoint
-        """
-
         contextMenu = QtWidgets.QMenu()
 
         # https://doc.qt.io/qt-5/qitemselectionmodel.html
-        proxy_indices = self.selectionModel().selectedRows()
-        indices = [self.model().mapToSource(index) for index in proxy_indices]
+        indices = self.getSelectedIndices()
 
         # no selection
         if not indices:
             addAction = contextMenu.addAction('add entry')
-            addAction.triggered.connect(self.userAdd)
+            addAction.triggered.connect(self.customAdd)
 
             clearAction = contextMenu.addAction('clear')
             clearAction.triggered.connect(self.clear)
-
         else:
+            removeAction = contextMenu.addAction('remove entry(s)')
+            removeAction.triggered.connect(lambda: self.remove(indices))
+
             copyAction = contextMenu.addAction('copy entry(s)')
             copyAction.triggered.connect(self.copy)
 
@@ -60,37 +54,30 @@ class QJsonView(QtWidgets.QTreeView):
             # only allow add when the index is a dictionary or list
             if index.internalPointer().dtype in [list, dict]:
                 addAction = contextMenu.addAction('add entry')
-                addAction.triggered.connect(lambda: self.userAdd(index=index))
+                addAction.triggered.connect(lambda: self.customAdd(index=index))
 
                 if self._clipBroad:
                     pasteAction = contextMenu.addAction('paste entry(s)')
                     pasteAction.triggered.connect(lambda: self.paste(index))
 
+        contextMenu.exec_(QtGui.QCursor().pos())
 
-            removeAction = contextMenu.addAction('remove entry')
-            removeAction.triggered.connect(lambda: self.remove(index))
+    # helper methods
 
+    def getSelectedIndices(self):
+        indices = self.selectionModel().selectedRows()
+        return [self.model().mapToSource(index) for index in indices]
 
-        # multiple selction
-        elif len(indices) > 1:
-            removeMAction = contextMenu.addAction('remove multiple entry')
-            removeMAction.triggered.connect(lambda: self.removeChildren(indices))
-
-        cursor = QtGui.QCursor()
-        contextMenu.exec_(cursor.pos())
-
-    def serializeSelection(self):
-        proxy_indices = self.selectionModel().selectedRows()
-        self.indices = [self.model().mapToSource(index) for index in proxy_indices]
-
-        doc = dict()
-        if not self.indices:
-            doc = self.model().sourceModel().asJson()
+    def asDict(self, indices):
+        output = dict()
+        if not indices:
+            output = self.model().sourceModel().asDict()
         else:
-            for index in self.indices:
-                doc.update(self.model().sourceModel().asJson(index))
+            for index in indices:
+                output.update(self.model().sourceModel().asDict(index))
+        return output
 
-        return doc
+    # overwrite drag and drop
 
     def mousePressEvent(self, event):
         super(QJsonView, self).mousePressEvent(event)
@@ -115,88 +102,76 @@ class QJsonView(QtWidgets.QTreeView):
             drag = QtGui.QDrag(self)
             mimeData = QtCore.QMimeData()
 
-            mimeData.setData('text/plain', str(self.serializeSelection()))
+            selected = self.asDict(self.getSelectedIndices())
+            mimeData.setText(str(selected))
             drag.setMimeData(mimeData)
 
             drag.exec_()
 
     def dragEnterEvent(self, event):
         data = event.mimeData()
-
-        if data.hasFormat('text/plain'):
+        if data.hasText():
             event.acceptProposedAction()
 
     def dragMoveEvent(self, event):
         data = event.mimeData()
-
-        if data.hasFormat('text/plain'):
+        if data.hasText():
             event.acceptProposedAction()
+
+        dropIndex = self.indexAt(event.pos())
+        dropIndex = self.model().mapToSource(dropIndex)
+
+        # not allowing drop to non dictionary or list
+        if not dropIndex == QtCore.QModelIndex():
+            if dropIndex.internalPointer().dtype not in [list, dict]:
+                event.ignore()
 
     def dropEvent(self, event):
+        dropIndex = self.indexAt(event.pos())
+        dropIndex = self.model().mapToSource(dropIndex)
+
+        # Move
         data = event.mimeData()
+        self.remove(self.getSelectedIndices())
+        self.add(data.text(), dropIndex)
+        event.acceptProposedAction()
 
-        if not data.hasFormat('text/plain'):
-            return
+    # custom behavior
 
-        index = self.indexAt(event.pos())
-        index = self.model().mapToSource(index)
-
-        if not index == QtCore.QModelIndex():
-            # Copy
-            # self.add(data.text(), index)
-
-            # Move
-            for selectedIndex in self.indices:
-                self.remove(selectedIndex)
-
-            self.add(data.text(), index)
-
-            event.acceptProposedAction()
-
-    def remove(self, index):
-        currentItem = index.internalPointer()
-        position = currentItem.row()
-
-        # let the model know we are removing
-        self.model().sourceModel().removeChild(position, parent=index.parent())
-
-    def removeChildren(self, indices):
+    def remove(self, indices):
         for index in indices:
-            self.remove(index)
+            currentNode = index.internalPointer()
+            position = currentNode.row()
 
-    def userAdd(self, dictionary=None, index=QtCore.QModelIndex()):
-        from textEditDialog import TextEditDialog
-
-        # test value
-        if not dictionary:
-            dictionary = {'tes': 'happy', 'apple': { 'migu': 123 }}
-
-        dialog = TextEditDialog(str(dictionary))
-
-        if dialog.exec_():
-            text = dialog.getTextEdit()
-            self.add(text, index)
-            return text
-        else:
-            return
+            # let the model know we are removing
+            self.model().sourceModel().removeChild(position, index.parent())
 
     def add(self, text=None, index=QtCore.QModelIndex()):
-        dictionary = ast.literal_eval(text)
-
         # populate items with a temp root
-        root = QJsonNode.load(dictionary)
-        children = root.children
+        root = QJsonNode.load(ast.literal_eval(text))
 
-        self.model().sourceModel().addChildren(children, index)
+        self.model().sourceModel().addChildren(root.children, index)
         self.model().sort(0, QtCore.Qt.AscendingOrder)
 
     def clear(self):
         self.model().sourceModel().clear()
 
     def copy(self):
-        doc = self.serializeSelection()
-        self._clipBroad = doc
+        selected = self.asDict(self.getSelectedIndices())
+        self._clipBroad = str(selected)
 
     def paste(self, index):
-        self.userAdd(self._clipBroad, index)
+        self.customAdd(self._clipBroad, index)
         self._clipBroad = ''
+        
+    def customAdd(self, text=None, index=QtCore.QModelIndex()):
+        from textEditDialog import TextEditDialog
+
+        # test value
+        if not text:
+            text = "{'tes': 'happy', 'apple': {'migu': 123}}"
+
+        dialog = TextEditDialog(text)
+        if dialog.exec_():
+            text = dialog.getTextEdit()
+            self.add(text, index)

@@ -23,10 +23,6 @@ class QJsonModel(QtCore.QAbstractItemModel):
         return 2
 
     def data(self, index, role):
-        # if not index.isValid():
-        #     return None
-        # node = index.internalPointer()
-
         node = self.getNode(index)
 
         if role == QtCore.Qt.DisplayRole:
@@ -48,11 +44,6 @@ class QJsonModel(QtCore.QAbstractItemModel):
             return node.key
 
     def setData(self, index, value, role):
-        # if not index.isValid():
-        #     return False
-        #
-        # node = index.internalPointer()
-
         node = self.getNode(index)
 
         if role == QtCore.Qt.EditRole:
@@ -83,8 +74,8 @@ class QJsonModel(QtCore.QAbstractItemModel):
                 | flags)
 
     def index(self, row, column, parent=QtCore.QModelIndex()):
-        # if not self.hasIndex(row, column, parent):
-        #     return QtCore.QModelIndex()
+        if not self.hasIndex(row, column, parent):
+            return QtCore.QModelIndex()
 
         parentNode = self.getNode(parent)
         currentNode = parentNode.child(row)
@@ -145,16 +136,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
                 return currentNode
         return self._rootNode
 
-    def asJson(self, index=QtCore.QModelIndex()):
+    def asDict(self, index=QtCore.QModelIndex()):
         node = self.getNode(index)
         if node == self._rootNode:
-            return node.asJson().values()[0]
+            return node.asDict().values()[0]
 
-        return node.asJson()
-
-        # if index == QtCore.QModelIndex():
-        #     node = self._rootNode
-        #     return node.asJson().values()[0]
-        # else:
-        #     node = index.internalPointer()
-        #     return node.asJson()
+        return node.asDict()

@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtGui
+from Qt import QtWidgets, QtGui
 
 
 class TextEditDialog(QtWidgets.QDialog):
@@ -10,8 +10,8 @@ class TextEditDialog(QtWidgets.QDialog):
         """
         Initializing the dialog ui elements and connect signals
 
-        @param text: str. Pre-displayed text, Defaults to ''.
-        @param title: str. dialog title, Defaults to ''.
+        :param text: str. pre-displayed text
+        :param title: str. dialog title
         """
         super(TextEditDialog, self).__init__()
 
@@ -29,7 +29,7 @@ class TextEditDialog(QtWidgets.QDialog):
 
     def onClickAccept(self):
         """
-        Trigger accept event when clicing the confirm button
+        Trigger accept event when clicking the confirm button
         """
         if self.ui_textEdit.toPlainText():
             self.accept()
@@ -40,7 +40,7 @@ class TextEditDialog(QtWidgets.QDialog):
         """
         Get the text from text edit field
 
-        @return: str. text from text edit field
+        :return: str. text from text edit field
         """
         return self.ui_textEdit.toPlainText()
 

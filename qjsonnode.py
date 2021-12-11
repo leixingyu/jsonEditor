@@ -1,6 +1,6 @@
 """
 The node module is for creating node data structure/class that supports
-hierarchical model. Each node object reflects to an abstract item which
+hierarchical model. Each node object reflects to an abstract node which
 has child and parent relationships
 """
 
@@ -15,32 +15,32 @@ class QJsonNode(object):
 
     @classmethod
     def load(cls, value, parent=None, sort=1):
-        rootItem = cls(parent)
-        rootItem.key = "root"
-        rootItem.dtype = type(value)
+        rootNode = cls(parent)
+        rootNode.key = "root"
+        rootNode.dtype = type(value)
 
         if isinstance(value, dict):
             # TODO: not sort will break things, but why?
-            items = (
+            nodes = (
                 sorted(value.items())
                 if sort else value.items()
             )
 
-            for key, value in items:
-                child = cls.load(value, rootItem)
+            for key, value in nodes:
+                child = cls.load(value, rootNode)
                 child.key = key
                 child.dtype = type(value)
-                rootItem.addChild(child)
+                rootNode.addChild(child)
         elif isinstance(value, list):
             for index, value in enumerate(value):
-                child = cls.load(value, rootItem)
+                child = cls.load(value, rootNode)
                 child.key = 'list[{}]'.format(index)
                 child.dtype = type(value)
-                rootItem.addChild(child)
+                rootNode.addChild(child)
         else:
-            rootItem.value = value
+            rootNode.value = value
 
-        return rootItem
+        return rootNode
 
     @property
     def key(self):
@@ -78,13 +78,13 @@ class QJsonNode(object):
     def childCount(self):
         return len(self._children)
 
-    def addChild(self, item):
-        self._children.append(item)
-        item._parent = self
+    def addChild(self, node):
+        self._children.append(node)
+        node._parent = self
 
     def removeChild(self, position):
-        item = self._children.pop(position)
-        item._parent = None
+        node = self._children.pop(position)
+        node._parent = None
 
     def child(self, row):
         return self._children[row]
@@ -94,26 +94,22 @@ class QJsonNode(object):
             return self.parent.children.index(self)
         return 0
 
-    def asJson(self):
+    def asDict(self):
         """
-        Serialize to json
+        Serialize to a dictionary
         """
         return {self.key: self.getChildrenValue(self)}
 
-    def getChildrenValue(self, item):
-        nchild = item.childCount
-
-        if item.dtype is dict:
-            document = dict()
-            for i in range(nchild):
-                ch = item.child(i)
-                document[ch.key] = self.getChildrenValue(ch)
-            return document
-        elif item.dtype == list:
-            document = list()
-            for i in range(nchild):
-                ch = item.child(i)
-                document.append(self.getChildrenValue(ch))
-            return document
+    def getChildrenValue(self, node):
+        if node.dtype is dict:
+            output = dict()
+            for child in node.children:
+                output[child.key] = self.getChildrenValue(child)
+            return output
+        elif node.dtype == list:
+            output = list()
+            for child in node.children:
+                output.append(self.getChildrenValue(child))
+            return output
         else:
-            return item.value
+            return node.value

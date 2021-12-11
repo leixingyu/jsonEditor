@@ -1,17 +1,12 @@
 import os
-import json
 import sys
 
 from Qt import QtWidgets, QtCore, QtGui
-from Qt import _loadUi
 
 from jsonViewer.qjsonnode import QJsonNode
 from jsonViewer.qjsonview import QJsonView
 from jsonViewer.qjsonmodel import QJsonModel
 
-
-MODULE_PATH = os.path.dirname(os.path.abspath(__file__))
-UI_FILE = os.path.join(MODULE_PATH, 'main.ui')
 
 TEST_DICT = {
     "firstName": "John",
@@ -39,8 +34,6 @@ TEST_DICT = {
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-
-        self._clipBroad = ''
 
         central_widget = QtWidgets.QWidget()
         layout = QtWidgets.QGridLayout()
@@ -75,7 +68,7 @@ class MainWindow(QtWidgets.QMainWindow):
         temp_btn.clicked.connect(self.pprint)
 
     def pprint(self):
-        doc = self.ui_tree_view.serializeSelection()
+        doc = self.ui_tree_view.asDict(self.ui_tree_view.getSelectedIndices())
         print doc
 
 
