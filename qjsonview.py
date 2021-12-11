@@ -1,16 +1,31 @@
+"""
+The view inheriting QTreeView for displaying QJsonModel
+this view is strictly used to display and control dictionary-like,
+hierarchical data structure.
+With custom implementation of drag & drop, editing behavior
+
+Reference:
+https://doc.qt.io/qt-5/model-view-programming.html#mime-data
+https://doc.qt.io/qt-5/qitemselectionmodel.html
+https://stackoverflow.com/questions/10778936/qt-mousemoveevent-qtleftbutton
+https://doc.qt.io/qt-5/qmouseevent.html#button
+"""
+
+
 import ast
 
 from Qt import QtWidgets, QtCore, QtGui
 
 from .qjsonnode import QJsonNode
 
-# https://doc.qt.io/qt-5/model-view-programming.html#mime-data
-
 
 class QJsonView(QtWidgets.QTreeView):
     dragStartPosition = None
 
     def __init__(self):
+        """
+        Initialization
+        """
         super(QJsonView, self).__init__()
 
         self._clipBroad = ''
@@ -24,15 +39,21 @@ class QJsonView(QtWidgets.QTreeView):
         self.customContextMenuRequested.connect(self.openContextMenu)
 
     def setModel(self, model):
+        """
+        Extend: set the current model and sort it
+
+        :param model: QSortFilterProxyModel. model
+        """
         super(QJsonView, self).setModel(model)
         self.model().sort(0, QtCore.Qt.AscendingOrder)
 
     def openContextMenu(self):
+        """
+        Custom: create a right-click context menu
+        """
         contextMenu = QtWidgets.QMenu()
 
-        # https://doc.qt.io/qt-5/qitemselectionmodel.html
         indices = self.getSelectedIndices()
-
         # no selection
         if not indices:
             addAction = contextMenu.addAction('add entry')
@@ -65,10 +86,21 @@ class QJsonView(QtWidgets.QTreeView):
     # helper methods
 
     def getSelectedIndices(self):
+        """
+        Custom: get source model indices of the selected item(s)
+
+        :return: list of QModelIndex. selected indices
+        """
         indices = self.selectionModel().selectedRows()
         return [self.model().mapToSource(index) for index in indices]
 
     def asDict(self, indices):
+        """
+        Custom: serialize specified model indices to dictionary
+
+        :param indices: list of QModelIndex. root indices
+        :return: dict. output dictionary
+        """
         output = dict()
         if not indices:
             output = self.model().sourceModel().asDict()
@@ -80,22 +112,25 @@ class QJsonView(QtWidgets.QTreeView):
     # overwrite drag and drop
 
     def mousePressEvent(self, event):
+        """
+        Override: record mouse click position
+        """
         super(QJsonView, self).mousePressEvent(event)
-
         if event.button() == QtCore.Qt.LeftButton:
             self.dragStartPosition = event.pos()
 
     def mouseMoveEvent(self, event):
-        # https://stackoverflow.com/questions/10778936/qt-mousemoveevent-qtleftbutton
-        # https://doc.qt.io/qt-5/qmouseevent.html#button
-
+        """
+        Override: instantiate custom drag object when dragging with left-click
+        """
         if not event.buttons():
             return
 
         if not event.buttons() == QtCore.Qt.LeftButton:
             return
 
-        if (event.pos() - self.dragStartPosition).manhattanLength() < QtWidgets.QApplication.startDragDistance():
+        if (event.pos() - self.dragStartPosition).manhattanLength() \
+                < QtWidgets.QApplication.startDragDistance():
             return
 
         if self.selectionModel().selectedRows():
@@ -109,11 +144,17 @@ class QJsonView(QtWidgets.QTreeView):
             drag.exec_()
 
     def dragEnterEvent(self, event):
+        """
+        Override: allow dragging only for certain drag object
+        """
         data = event.mimeData()
         if data.hasText():
             event.acceptProposedAction()
 
     def dragMoveEvent(self, event):
+        """
+        Override: disable dropping to certain model index based on node type
+        """
         data = event.mimeData()
         if data.hasText():
             event.acceptProposedAction()
@@ -127,10 +168,12 @@ class QJsonView(QtWidgets.QTreeView):
                 event.ignore()
 
     def dropEvent(self, event):
+        """
+        Override: customize drop behavior to move for internal drag & drop
+        """
         dropIndex = self.indexAt(event.pos())
         dropIndex = self.model().mapToSource(dropIndex)
 
-        # Move
         data = event.mimeData()
         self.remove(self.getSelectedIndices())
         self.add(data.text(), dropIndex)
@@ -139,6 +182,11 @@ class QJsonView(QtWidgets.QTreeView):
     # custom behavior
 
     def remove(self, indices):
+        """
+        Custom: remove node(s) of specified indices
+
+        :param indices: QModelIndex. specified indices
+        """
         for index in indices:
             currentNode = index.internalPointer()
             position = currentNode.row()
@@ -147,6 +195,12 @@ class QJsonView(QtWidgets.QTreeView):
             self.model().sourceModel().removeChild(position, index.parent())
 
     def add(self, text=None, index=QtCore.QModelIndex()):
+        """
+        Custom: add node(s) under the specified index
+
+        :param text: str. input text for de-serialization
+        :param index: QModelIndex. parent index
+        """
         # populate items with a temp root
         root = QJsonNode.load(ast.literal_eval(text))
 
@@ -154,17 +208,34 @@ class QJsonView(QtWidgets.QTreeView):
         self.model().sort(0, QtCore.Qt.AscendingOrder)
 
     def clear(self):
+        """
+        Custom: clear the entire view
+        """
         self.model().sourceModel().clear()
 
     def copy(self):
+        """
+        Custom: copy the selected indices by store the serialized value
+        """
         selected = self.asDict(self.getSelectedIndices())
         self._clipBroad = str(selected)
 
     def paste(self, index):
+        """
+        Custom: paste to index by de-serialize clipboard value
+
+        :param index: QModelIndex. target index
+        """
         self.customAdd(self._clipBroad, index)
         self._clipBroad = ''
         
     def customAdd(self, text=None, index=QtCore.QModelIndex()):
+        """
+        Custom: add node(s) under the specified index using specified values
+
+        :param text: str. input text for de-serialization
+        :param index: QModelIndex. parent index
+        """
         from textEditDialog import TextEditDialog
 
         # test value

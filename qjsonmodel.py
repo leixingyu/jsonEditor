@@ -1,3 +1,9 @@
+"""
+The model class used for populating the QJsonView,
+and providing functionalities to manipulate QJsonNode objects within the model
+"""
+
+
 from Qt import QtWidgets, QtCore, QtGui
 
 from .qjsonnode import QJsonNode
@@ -8,10 +14,18 @@ class QJsonModel(QtCore.QAbstractItemModel):
     filterRole = QtCore.Qt.UserRole + 1
 
     def __init__(self, root, parent=None):
+        """
+        Initialization
+
+        :param root: QJsonNode. root node of the model, it is hidden
+        """
         super(QJsonModel, self).__init__(parent)
         self._rootNode = root
 
     def rowCount(self, parent=QtCore.QModelIndex()):
+        """
+        Override
+        """
         if not parent.isValid():
             parentNode = self._rootNode
         else:
@@ -20,9 +34,15 @@ class QJsonModel(QtCore.QAbstractItemModel):
         return parentNode.childCount
 
     def columnCount(self, parent=QtCore.QModelIndex()):
+        """
+        Override
+        """
         return 2
 
     def data(self, index, role):
+        """
+        Override
+        """
         node = self.getNode(index)
 
         if role == QtCore.Qt.DisplayRole:
@@ -44,6 +64,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
             return node.key
 
     def setData(self, index, value, role):
+        """
+        Override
+        """
         node = self.getNode(index)
 
         if role == QtCore.Qt.EditRole:
@@ -60,6 +83,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
         return False
 
     def headerData(self, section, orientation, role):
+        """
+        Override
+        """
         if role == QtCore.Qt.DisplayRole:
             if section == 0:
                 return "Key"
@@ -67,6 +93,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
                 return "Value"
 
     def flags(self, index):
+        """
+        Override
+        """
         flags = super(QJsonModel, self).flags(index)
         return (QtCore.Qt.ItemIsEditable
                 | QtCore.Qt.ItemIsDragEnabled
@@ -74,6 +103,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
                 | flags)
 
     def index(self, row, column, parent=QtCore.QModelIndex()):
+        """
+        Override
+        """
         if not self.hasIndex(row, column, parent):
             return QtCore.QModelIndex()
 
@@ -85,6 +117,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
             return QtCore.QModelIndex()
 
     def parent(self, index):
+        """
+        Override
+        """
         currentNode = self.getNode(index)
         parentNode = currentNode.parent
 
@@ -94,6 +129,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
         return self.createIndex(parentNode.row(), 0, parentNode)
 
     def addChildren(self, children, parent=QtCore.QModelIndex()):
+        """
+        Custom: add children QJsonNode to the specified index
+        """
         self.beginInsertRows(parent, 0, len(children) - 1)
 
         if parent == QtCore.QModelIndex():
@@ -108,6 +146,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
         return True
 
     def removeChild(self, position, parent=QtCore.QModelIndex()):
+        """
+        Custom: remove child of position for the specified index
+        """
         self.beginRemoveRows(parent, position, position)
 
         if parent == QtCore.QModelIndex():
@@ -121,6 +162,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
         return True
 
     def clear(self):
+        """
+        Custom: clear the model data
+        """
         self.beginResetModel()
         self._rootNode = QJsonNode()
         self.endResetModel()
@@ -128,7 +172,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
 
     def getNode(self, index):
         """
-        Custom method
+        Custom: get QJsonNode from model index
+
+        :param index: QModelIndex. specified index
         """
         if index.isValid():
             currentNode = index.internalPointer()
@@ -137,6 +183,14 @@ class QJsonModel(QtCore.QAbstractItemModel):
         return self._rootNode
 
     def asDict(self, index=QtCore.QModelIndex()):
+        """
+        Custom: serialize specified index to dictionary
+        if no index is specified, the whole model will be serialized
+        but will not include the root key (as it's supposed to be hidden)
+
+        :param index: QModelIndex. specified index
+        :return: dict. output dictionary
+        """
         node = self.getNode(index)
         if node == self._rootNode:
             return node.asDict().values()[0]

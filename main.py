@@ -1,4 +1,8 @@
-import os
+"""
+Main window to launch JsonViewer
+"""
+
+
 import sys
 
 from Qt import QtWidgets, QtCore, QtGui
@@ -74,9 +78,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 def show():
     global window
-
     app = QtWidgets.QApplication(sys.argv)
-
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
