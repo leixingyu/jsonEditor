@@ -63,6 +63,9 @@ class QJsonModel(QtCore.QAbstractItemModel):
         elif role == QJsonModel.filterRole:
             return node.key
 
+        elif role == QtCore.Qt.SizeHintRole:
+            return QtCore.QSize(-1, 22)
+
     def setData(self, index, value, role):
         """
         Override

@@ -30,10 +30,12 @@ class QJsonView(QtWidgets.QTreeView):
 
         self._clipBroad = ''
 
+        # set flags
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.setUniformRowHeights(True)
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.openContextMenu)
@@ -240,7 +242,7 @@ class QJsonView(QtWidgets.QTreeView):
 
         # test value
         if not text:
-            text = "{'tes': 'happy', 'apple': {'migu': 123}}"
+            text = "{'food': 'pizza', 'fruit': {'apple': 20, 'orange': 15}}"
 
         dialog = TextEditDialog(text)
         if dialog.exec_():
