@@ -48,6 +48,7 @@ class MainWindow(QtWidgets.QMainWindow):
         _loadUi(UI_PATH, self)
 
         self.ui_tree_view = QJsonView()
+        self.ui_tree_view.setStyleSheet('QWidget{font: 10pt "Bahnschrift";}')
         self.ui_grid_layout.addWidget(self.ui_tree_view, 1, 0)
 
         root = QJsonNode.load(TEST_DICT)
