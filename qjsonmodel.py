@@ -74,12 +74,12 @@ class QJsonModel(QtCore.QAbstractItemModel):
 
         if role == QtCore.Qt.EditRole:
             if index.column() == 0:
-                node.key = str(value)
+                node.key = value
                 self.dataChanged.emit(index, index)
                 return True
 
             if index.column() == 1:
-                node.value = str(value)
+                node.value = value
                 self.dataChanged.emit(index, index)
                 return True
 

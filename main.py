@@ -80,6 +80,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog = TextEditDialog(str(jsonDict))
         dialog.exec_()
 
+
 def show():
     global window
     app = QtWidgets.QApplication(sys.argv)
