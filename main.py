@@ -4,15 +4,19 @@ Main window to launch JsonViewer
 
 
 import json
+import os
 import sys
 
 from Qt import QtWidgets, QtCore, QtGui
+from Qt import _loadUi
 
 from jsonViewer.qjsonnode import QJsonNode
 from jsonViewer.qjsonview import QJsonView
 from jsonViewer.qjsonmodel import QJsonModel
 
 
+MODULE_PATH = os.path.dirname(os.path.abspath(__file__))
+UI_PATH = os.path.join(MODULE_PATH, 'ui', 'jsonEditor.ui')
 TEST_DICT = {
     "firstName": "John",
     "lastName": "Smith",
@@ -39,19 +43,10 @@ TEST_DICT = {
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
+        _loadUi(UI_PATH, self)
 
-        central_widget = QtWidgets.QWidget()
-        layout = QtWidgets.QGridLayout()
-        line_edit = QtWidgets.QLineEdit()
-        temp_btn = QtWidgets.QPushButton('output')
         self.ui_tree_view = QJsonView()
-
-        layout.addWidget(line_edit, 0, 0)
-        layout.addWidget(self.ui_tree_view, 1, 0)
-        layout.addWidget(temp_btn, 2, 0)
-
-        self.setCentralWidget(central_widget)
-        central_widget.setLayout(layout)
+        self.ui_grid_layout.addWidget(self.ui_tree_view, 1, 0)
 
         root = QJsonNode.load(TEST_DICT)
         self._model = QJsonModel(root, self)
@@ -69,8 +64,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.ui_tree_view.setModel(self._proxyModel)
 
-        line_edit.textChanged.connect(self._proxyModel.setFilterRegExp)
-        temp_btn.clicked.connect(self.pprint)
+        self.ui_filter_edit.textChanged.connect(self._proxyModel.setFilterRegExp)
+        self.ui_out_btn.clicked.connect(self.pprint)
 
     def pprint(self):
         output = self.ui_tree_view.asDict(self.ui_tree_view.getSelectedIndices())
