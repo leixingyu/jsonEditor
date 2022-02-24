@@ -29,6 +29,19 @@ modular and easily embeddable, so to create a standardized way for displaying an
 
 ## Getting Started
 
+### Prerequisites
+
+- [Qt](https://github.com/mottosso/Qt.py): a module that supports different
+python qt bindings
+
+   or alternatively, change the code below to whatever qt binding you have on your machine.
+   ```python
+   from Qt import QtWidgets, QtCore, QtGui
+   from Qt import _loadUi
+   ```
+
+### Launch
+
 1. Unzip the **json-editor** package and rename is to something like `jsonViewer`
 
 2. You can either run `main.py` directly or:

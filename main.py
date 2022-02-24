@@ -14,7 +14,7 @@ from Qt import _loadUi
 from jsonViewer.qjsonnode import QJsonNode
 from jsonViewer.qjsonview import QJsonView
 from jsonViewer.qjsonmodel import QJsonModel
-from jsonViewer.hightlighter import JsonHighlighter
+from codeEditor.highlighter.jsonHighlight import JsonHighlighter
 
 
 MODULE_PATH = os.path.dirname(os.path.abspath(__file__))

@@ -1,0 +1,3 @@
+[submodule "codeEditor"]
+	path = codeEditor
+	url = git@github.com:leixingyu/qt-code-editor.git
